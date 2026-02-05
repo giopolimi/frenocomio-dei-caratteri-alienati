@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manicomio - Interactive Experience</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Build trigger 2025-01-10 -->
+    <!-- p5.js per landing page -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+</head>
+<body>
+
+    <!-- LANDING PAGE - p5.js sketch (sostituisce slide1, slide2, slide3 e black-screen) -->
+    <!-- Il canvas di p5 sarà creato dinamicamente -->
+    
+    <!-- Schermata nera iniziale (DEPRECATED - sostituita da p5 landing) -->
+    <div id="black-screen" class="hidden">
+    </div>
+
+    <!-- Slide 1 (DEPRECATED - sostituita da p5 landing) -->
+    <div id="slide1" class="hidden">
+        <div class="slide-content">
+            <p class="slide-text">Alienato è l'individuo che ha perduto il controllo della propria identità risultando estraneo a sé stesso o alla realtà</p>
+            <p class="slide-footer">click per continuare</p>
+        </div>
+    </div>
+
+    <!-- Slide 2 (DEPRECATED - sostituita da p5 landing) -->
+    <div id="slide2" class="hidden">
+        <div class="slide-content">
+            <p class="slide-text">Nel XIX secolo gli alienati venivano rinchiusi in strutture sanitarie riabilitative: i frenocomi. O comunemente noti come "manicomi"</p>
+            <p class="slide-footer">click per continuare</p>
+        </div>
+    </div>
+
+    <!-- Slide 3 (DEPRECATED - sostituita da p5 landing) -->
+    <div id="slide3" class="hidden">
+        <div class="slide-content">
+            <p class="slide-title">IL TIPOCOMIO<br>DEI CARATTERI ALIENATI</p>
+            <p class="slide-footer">click per continuare</p>
+        </div>
+    </div>
+
+    <div id="loading-screen" class="hidden">
+        <div class="loading-content">
+            <p class="loading-text">ENTRANDO NEL TIPOCOMIO...</p>
+            <div class="controls-info">
+                <div class="control-left">
+                    <img src="public/scroll.svg" alt="Scroll" class="control-image">
+                    <p class="control-label">Muoviti lungo il percorso</p>
+                </div>
+                <div class="control-right">
+                    <div class="control-keys-group">
+                        <img src="public/wasd.svg" alt="WASD" class="control-image">
+                        <img src="public/freccette.svg" alt="Frecce" class="control-image">
+                    </div>
+                    <p class="control-label">Guardati intorno</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="overlay" class="hidden">
+        <div class="contenitore-immagine">
+            <!-- <img src="public/lettera.png" alt="Lettera" id="immagine-lettera"> -->
+            <br>
+            <button id="close-btn">CHIUDI DOCUMENTO</button>
+        </div>
+    </div>
+
+    <div id="fogli-overlay" class="hidden">
+        <div class="contenitore-fogli">
+            <button id="fogli-prev-btn" class="fogli-nav-btn fogli-prev-btn">◀</button>
+            <button id="fogli-next-btn" class="fogli-nav-btn fogli-next-btn">▶</button>
+        </div>
+    </div>
+
+    <!-- Prompt per fogli in aria -->
+    <div id="fogli-prompt" class="hidden">
+        <div class="fogli-prompt-content">
+            <p class="fogli-prompt-title">FOLLIA CIRCOLARE</p>
+            <p class="fogli-prompt-subtitle">click sui fogli per analizzare</p>
+        </div>
+    </div>
+
+    <!-- Import map per risolvere i moduli Three.js -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"
+            }
+        }
+    </script>
+
+    <!-- Landing page p5.js sketch -->
+    <script src="landing-sketch.js"></script>
+    
+    <!-- Script per aspettare che p5 landing finisca, poi carica Three.js -->
+    <script>
+        window.landingPageComplete = false;
+        let mainJsLoaded = false;
+        
+        window.addEventListener('DOMContentLoaded', () => {
+            // Nascondi tutte le slide vecchie
+            ['black-screen', 'slide1', 'slide2', 'slide3'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.classList.add('hidden');
+            });
+            
+            // Invia il segnale di inizio al landing sketch
+            console.log('🎬 Landing page pronta per iniziare');
+        });
+        
+        // Monitora il completamento di p5 landing
+        const checkLandingComplete = setInterval(() => {
+            if (window.landingPageComplete && !mainJsLoaded) {
+                mainJsLoaded = true;
+                clearInterval(checkLandingComplete);
+                console.log('✅ Landing page completata - carico Three.js main.js');
+                
+                // Carica dinamicamente main.js ora
+                const script = document.createElement('script');
+                script.type = 'module';
+                script.src = 'main.js';
+                document.body.appendChild(script);
+            }
+        }, 100);
+    </script>
+</body>
+</html>

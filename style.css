@@ -1,0 +1,413 @@
+@font-face {
+    font-family: 'DoctorSaidMono';
+    src: url('assets/font/DoctorSaidMono-Regular(1).ttf') format('truetype');
+}
+
+body {
+    margin: 0;
+    overflow: hidden;
+    background-color: #000000;
+    font-family: 'DoctorSaidMono';
+}
+
+/* Black Screen Iniziale */
+#black-screen {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: #000;
+    color: #666;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 30;
+    font-size: 20px;
+    letter-spacing: 3px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: opacity 0.5s ease;
+}
+
+#black-screen.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* Slides Introduzione */
+#slide1, #slide2, #slide3 {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: #000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+    opacity: 0;
+    pointer-events: none;
+    cursor: pointer;
+}
+
+#slide1:not(.hidden), #slide2:not(.hidden), #slide3:not(.hidden) {
+    opacity: 1 !important;
+    pointer-events: auto;
+}
+
+#slide1.hidden, #slide2.hidden, #slide3.hidden {
+    opacity: 0 !important;
+    pointer-events: none;
+}
+
+.slide-content {
+    text-align: center;
+    padding: 40px;
+    max-width: 53%;
+}
+
+.slide-text {
+    color: #ccc;
+    font-size: 22px;
+    line-height: 1.8;
+    letter-spacing: 1px;
+    margin: 0 0 40px 0;
+}
+
+.slide-title {
+    color: #fff;
+    font-size: 56px;
+    font-weight: bold;
+    letter-spacing: 3px;
+    margin: 0 0 40px 0;
+    text-transform: uppercase;
+    line-height: 1.3;
+}
+
+.slide-footer {
+    color: #555;
+    font-size: 14px;
+    letter-spacing: 1px;
+    margin: 0;
+    text-align: center;
+}
+
+/* Loading Screen */
+#loading-screen {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: #000;
+    color: #800;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding-top: 20vh;
+    z-index: 100;
+    font-size: 24px;
+    letter-spacing: 4px;
+    font-weight: bold;
+    opacity: 0;
+    pointer-events: none;
+}
+
+#loading-screen:not(.hidden) {
+    opacity: 1 !important;
+    pointer-events: auto;
+}
+
+#loading-screen.hidden {
+    opacity: 0 !important;
+    pointer-events: none;
+}
+
+.loading-content {
+    text-align: center;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    padding: 60px 40px;
+}
+
+.loading-text {
+    margin: 0 0 80px 0;
+    font-size: 24px;
+    letter-spacing: 4px;
+    flex-shrink: 0;
+    transform: translateY(-10px);
+}
+
+.controls-info {
+    display: flex;
+    justify-content: space-around;
+    align-items: flex-end;
+    gap: 40px;
+    flex-shrink: 0;
+    margin-top: 20px;
+}
+
+.control-left,
+.control-right {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    width: auto;
+    height: auto;
+}
+
+.control-keys-group {
+    display: flex;
+    gap: 42.5px;
+    justify-content: center;
+}
+
+.control-image {
+    max-width: 136px;
+    max-height: 136px;
+    width: auto;
+    height: auto;
+    opacity: 0.7;
+}
+
+.control-keys-group .control-image {
+    max-width: 170px !important;
+    max-height: 170px !important;
+    width: 170px !important;
+    height: 170px !important;
+    flex-shrink: 0 !important;
+    flex-grow: 0 !important;
+    flex-basis: 170px !important;
+}
+
+.control-label {
+    color: #888;
+    font-size: 13px;
+    letter-spacing: 1px;
+    margin: 0;
+    max-width: 200px;
+    white-space: nowrap;
+}
+
+.control-left .control-label {
+    margin-top: 8px;
+}
+
+
+/* Overlay Sfondo */
+#overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85); /* Un po' più scuro */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10;
+    transition: opacity 0.5s ease;
+}
+
+.hidden {
+    opacity: 0 !important;
+    pointer-events: none;
+}
+
+.contenitore-immagine {
+    text-align: center;
+    animation: float 6s ease-in-out infinite;
+}
+
+/* STILE PNG TRASPARENTE */
+#immagine-lettera {
+    max-width: 85vw;
+    max-height: 85vh;
+    
+    /* Nessun bordo o sfondo, così la trasparenza funziona */
+    border: none;
+    background: transparent;
+
+    /* L'ombra segue la forma del PNG invece di essere un quadrato */
+    filter: drop-shadow(0 10px 20px rgba(0,0,0,0.8));
+    
+    transform: rotate(-1.5deg);
+}
+
+/* Bottone */
+button {
+    margin-top: 30px;
+    padding: 12px 30px;
+    background: rgba(20, 20, 20, 0.9);
+    color: #ccc;
+    border: 1px solid #555;
+    cursor: pointer;
+    font-family: inherit;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    transition: all 0.3s;
+}
+
+button:hover {
+    background: #800;
+    color: white;
+    border-color: #f00;
+    box-shadow: 0 0 15px #800;
+}
+
+/* Animazione galleggiamento */
+@keyframes float {
+    0% { transform: translateY(0px) rotate(-1.5deg); }
+    50% { transform: translateY(-8px) rotate(-1.5deg); }
+    100% { transform: translateY(0px) rotate(-1.5deg); }
+}
+
+/* Overlay Fogli */
+#fogli-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: none !important;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 15;
+    transition: opacity 0.5s ease;
+    pointer-events: auto; /* Sempre attivo per catturare i click */
+}
+
+#fogli-overlay.hidden {
+    opacity: 0 !important;
+    pointer-events: none;
+}
+
+#fogli-overlay:not(.hidden) {
+    pointer-events: auto; /* Riabilita solo quando visibile */
+}
+
+.contenitore-fogli {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+    gap: 40px;
+    pointer-events: auto;
+}
+
+.fogli-nav-btn {
+    background: transparent;
+    color: #ccc;
+    border: none;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    line-height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 28px;
+    flex-shrink: 0;
+    z-index: 16;
+    pointer-events: auto; /* I bottoni devono catturare i click */
+    outline: none;
+    box-shadow: none;
+}
+
+.fogli-nav-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border: none;
+    outline: none;
+    box-shadow: none;
+}
+
+.fogli-prev-btn {
+    position: absolute;
+    left: calc(42% - 170px);
+}
+
+.fogli-next-btn {
+    position: absolute;
+    right: calc(42% - 170px);
+}
+
+.fogli-close-btn {
+    position: absolute;
+    top: 40px;
+    right: 40px;
+    background: transparent;
+    color: #ccc;
+    border: none;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 24px;
+    pointer-events: auto; /* Il bottone deve catturare i click */
+}
+
+.fogli-close-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.fogli-info {
+    position: absolute;
+    bottom: 40px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: #888;
+    font-size: 16px;
+    letter-spacing: 2px;
+    z-index: 16;
+    pointer-events: none; /* Non blocca i click */
+}
+
+/* Prompt fogli in aria */
+#fogli-prompt {
+    position: absolute;
+    bottom: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.5s ease;
+}
+
+#fogli-prompt:not(.hidden) {
+    opacity: 1;
+}
+
+#fogli-prompt.hidden {
+    opacity: 0;
+}
+
+.fogli-prompt-content {
+    text-align: center;
+}
+
+.fogli-prompt-title {
+    color: #ccc;
+    font-size: 20px;
+    letter-spacing: 2px;
+    margin: 0 0 12px 0;
+    font-weight: normal;
+}
+
+.fogli-prompt-subtitle {
+    color: #666;
+    font-size: 13px;
+    letter-spacing: 1px;
+    margin: 0;
+}
