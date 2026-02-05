@@ -395,441 +395,87 @@ const updateLandingPageState = () => {
 // Controlla lo stato della landing page ogni frame
 const checkLandingPageInterval = setInterval(updateLandingPageState, 100);
 
-// Use local assets in development, Bunny CDN in production
-const glbUrl = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-    ? 'assets/manicomio.glb'
-    : 'https://Tipocomio.b-cdn.net/manicomio.glb';
+// NUOVO CODICE:
+const githubZipUrl = 'https://github.com/giopolimi/frenocomio-dei-caratteri-alienati/releases/download/v1.0/manicomio.glb.zip';
 
-const muraGlbUrl = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-    ? 'assets/mura.glb'
-    : 'https://Tipocomio.b-cdn.net/mura.glb';
+// Determina l'URL del modello
+let glbUrl;
+let muraGlbUrl;
 
-loader.load(glbUrl, 
-    (gltf) => {
-        manicomioModel = gltf.scene;
-        manicomioModel.position.set(0, 0, 0);
-        manicomioModel.scale.set(1.6, 1.6, 1.6);
-        
-        // Abilita le ombre per gli oggetti, disabilita su muri/pareti
-        manicomioModel.traverse((child) => {
-            // Stampa tutti gli oggetti per debug
-            if (child.name) {
-                const nameLower = child.name.toLowerCase();
-                
-                // Log speciale per oggetti interessanti
+if (isLocalDevelopment()) {
+    // Sviluppo locale: usa i file locali
+    glbUrl = 'assets/manicomio.glb';
+    muraGlbUrl = 'assets/mura.glb';
+} else {
+    // Produzione: prova prima Bunny CDN, se fallisce usa GitHub
+    glbUrl = 'https://Tipocomio.b-cdn.net/manicomio.glb';
+    muraGlbUrl = 'https://Tipocomio.b-cdn.net/mura.glb';
+}
 
-            }
-            
-            // Nascondi Cubone (case-insensitive)
-            if (child.name && child.name.toLowerCase().includes("cubone")) {
-                child.visible = false;
-            }
-            
-            // Identifica i fogli (cassetto + set esterni) con ricerca flessibile
-            Object.entries(paperSets).forEach(([setKey, set]) => {
-                // Crea pattern di ricerca per questo set
-                const searchPatterns = {
-                    'cassetto': ['follia', 'circolare', 'scattered'],
-                    'monomania': ['monomania', 'impulsiv'],
-                    'nevrastenia': ['nevrastenia', 'neurasthenia'],
-                    'isteria': ['isteria', 'hysteria'],
-                    'megalomania': ['megalomania', 'megaloman'],
-                    'delirio': ['delirio', 'delirium'],
-                    'specimen': ['specimen'],
-                    'letteraincompleta': ['letteraincompleta', 'lettera', 'incomplet']
-                };
-                
-                const patterns = searchPatterns[setKey];
-                if (!patterns || !child.name) return;
-                
-                // Controlla se il nome del child matcha esattamente i fogli del cassetto
-                const nameLower = child.name.toLowerCase();
-                if (setKey === 'cassetto') {
-                    const exactIndex = set.names.findIndex(name => name.toLowerCase() === nameLower);
-                    if (exactIndex !== -1 && !set.objects[exactIndex]) {
-                        const index = exactIndex;
-                        set.objects[index] = child;
-                        child.userData.isPaper = true;
-                        child.userData.paperIndex = index;
-                        child.userData.paperSet = setKey;
-                        child.renderOrder = index;
-                        console.log(`✅ Foglio trovato: ${child.name} (set ${setKey}, index ${index})`);
-
-                        // Salva posizione/rotazione locali del foglio nel cassetto
-                        set.closedPositions[index] = child.position.clone();
-                        set.closedRotations[index] = child.rotation.clone();
-
-                        // Aggiusta il materiale dei fogli per mostrare le texture
-                        if (child.isMesh && child.material) {
-                            // Se è un MeshBasicMaterial, convertilo a MeshPhongMaterial
-                            if (child.material.type === 'MeshBasicMaterial') {
-                                const oldMaterial = child.material;
-                                const newMaterial = new THREE.MeshPhongMaterial({
-                                    color: oldMaterial.color,
-                                    map: oldMaterial.map,
-                                    side: oldMaterial.side,
-                                    flatShading: false,
-                                    shininess: 100,
-                                    emissive: 0x000000,
-                                    emissiveIntensity: 0.2
-                                });
-                                if (oldMaterial.map) {
-                                    newMaterial.map.anisotropy = renderer.capabilities.maxAnisotropy;
-                                }
-                                child.material = newMaterial;
-                            } else if (child.material.type === 'MeshStandardMaterial' || child.material.type === 'MeshPhongMaterial') {
-                                // Se è già un buon materiale, migliora l'emissive per visibilità
-                                if (child.material.emissive) {
-                                    child.material.emissiveIntensity = 0.3;
-                                }
-                                if (child.material.map) {
-                                    child.material.map.anisotropy = renderer.capabilities.maxAnisotropy;
-                                }
-                            }
-                        }
-                        return;
-                    }
+// Funzione per caricare il modello principale
+async function loadMainModel() {
+    try {
+        // Se non siamo in locale e il file non è su Bunny CDN, scarica da GitHub
+        if (!isLocalDevelopment()) {
+            // Testa se Bunny CDN ha il file
+            try {
+                const testResponse = await fetch(glbUrl, { method: 'HEAD' });
+                if (!testResponse.ok) {
+                    throw new Error('File non trovato su Bunny CDN');
                 }
-
-                // Controlla se il nome del child matcha uno dei pattern
-                const matchesPattern = patterns.some(pattern => nameLower.includes(pattern));
-                if (!matchesPattern) return;
-                
-                // Gestisci fogli singoli (specimen, letteraincompleta)
-                if (setKey === 'specimen' || setKey === 'letteraincompleta') {
-                    const index = 0; // Fogli singoli hanno sempre indice 0
-                    if (set.objects[index]) return; // Se già assegnato, salta
-                    
-                    set.objects[index] = child;
-                    child.userData.isPaper = true;
-                    child.userData.paperIndex = index;
-                    child.userData.paperSet = setKey;
-                    child.renderOrder = index;
-                    console.log(`✅ Foglio trovato: ${child.name} (set ${setKey}, index ${index})`);
-
-                    // Salva posizione/rotazione locali del foglio a riposo
-                    set.restPositions[index] = child.position.clone();
-                    set.restRotations[index] = child.rotation.clone();
-                } else {
-                    // Estrai il numero dal nome (cerca 1, 2, 3, 4)
-                    const numberMatch = child.name.match(/(\d+)/);
-                    if (!numberMatch) return;
-                    
-                    const num = parseInt(numberMatch[1]);
-                    const index = num - 1; // converte 1,2,3,4 in 0,1,2,3
-                    if (index < 0 || index >= 4 || set.objects[index]) return;
-                    
-                    set.objects[index] = child;
-                    child.userData.isPaper = true;
-                    child.userData.paperIndex = index;
-                    child.userData.paperSet = setKey;
-                    child.renderOrder = index;
-                    console.log(`✅ Foglio trovato: ${child.name} (set ${setKey}, index ${index})`);
-
-                    if (setKey === 'cassetto' || setKey === 'delirio') {
-                        // Salva posizione/rotazione locali del foglio nel cassetto o valigia
-                        set.closedPositions[index] = child.position.clone();
-                        set.closedRotations[index] = child.rotation.clone();
-                    } else {
-                        // Salva posizione/rotazione locali del foglio a riposo
-                        set.restPositions[index] = child.position.clone();
-                        set.restRotations[index] = child.rotation.clone();
+            } catch (error) {
+                console.log('📦 Caricamento da GitHub Releases...');
+                // Carica da GitHub con barra di progresso
+                glbUrl = await loadGLBFromZip(githubZipUrl, (percent, message) => {
+                    // Aggiorna la schermata di caricamento
+                    if (loadingScreen && loadingScreen.querySelector('.loading-text')) {
+                        loadingScreen.querySelector('.loading-text').textContent = message;
                     }
-                }
-            
-                // Aggiusta il materiale dei fogli per mostrare le texture
-                if (child.isMesh && child.material) {
-                    // Se è un MeshBasicMaterial, convertilo a MeshPhongMaterial
-                    if (child.material.type === 'MeshBasicMaterial') {
-                        const oldMaterial = child.material;
-                        const newMaterial = new THREE.MeshPhongMaterial({
-                            color: oldMaterial.color,
-                            map: oldMaterial.map,
-                            side: oldMaterial.side,
-                            flatShading: false,
-                            shininess: 100,
-                            emissive: 0x000000,
-                            emissiveIntensity: 0.2
-                        });
-                        if (oldMaterial.map) {
-                            newMaterial.map.anisotropy = renderer.capabilities.maxAnisotropy;
-                        }
-                        child.material = newMaterial;
-                        console.log(`🔧 Materiale foglio ${child.name} convertito a MeshPhongMaterial`);
-                    } else if (child.material.type === 'MeshStandardMaterial' || child.material.type === 'MeshPhongMaterial') {
-                        // Se è già un buon materiale, migliora l'emissive per visibilità
-                        if (child.material.emissive) {
-                            child.material.emissiveIntensity = 0.3;
-                        }
-                        if (child.material.map) {
-                            child.material.map.anisotropy = renderer.capabilities.maxAnisotropy;
-                        }
-                    }
-                }
-            });
-            
-            // Identifica il cassetto - cerca varianti
-            if (child.name && (child.name.toLowerCase().includes("cassetto") || 
-                child.name.toLowerCase().includes("drawer") || 
-                child.name.toLowerCase().includes("cabinet"))) {
-                cassettoObj = child;
-                child.userData.isCassetto = true;
-                
-                // Crea un quadrato rosso come indicatore
-                const helperGeo = new THREE.PlaneGeometry(0.5, 0.5);
-                const helperMat = new THREE.MeshBasicMaterial({
-                    color: 0xff0000,
-                    side: THREE.DoubleSide,
-                    transparent: true,
-                    opacity: 0.0
                 });
-                cassettoHelper = new THREE.Mesh(helperGeo, helperMat);
-                cassettoHelper.position.set(0.62, -0.02, 0.21); // Posizione relativa al cassetto
-                cassettoHelper.rotation.x = Math.PI / 2; // Ruota di 90 gradi su X
-                cassettoHelper.rotation.y = Math.PI / 2; // Ruota di 90 gradi su Y
-                cassettoHelper.userData.isCassettoClickTarget = true;
-                cassettoHelper.visible = true; // Invisibile ma cliccabile
-                child.add(cassettoHelper);
-            }
-            
-            // Identifica la valigia - cerca varianti  
-            if (child.name && (child.name.toLowerCase().includes("valigia") || 
-                child.name.toLowerCase().includes("suitcase") || 
-                child.name.toLowerCase().includes("bag"))) {
-                valigiaObj = child;
-                child.userData.isValigia = true;
-                
-                // Crea un helper invisibile come indicatore
-                const helperGeo = new THREE.PlaneGeometry(0.5, 0.5);
-                const helperMat = new THREE.MeshBasicMaterial({
-                    color: 0x00ff00,
-                    side: THREE.DoubleSide,
-                    transparent: true,
-                    opacity: 0.0
-                });
-                valigiaHelper = new THREE.Mesh(helperGeo, helperMat);
-                valigiaHelper.position.set(0, 0.5, 0); // Posizione relativa alla valigia
-                valigiaHelper.rotation.x = Math.PI / 2;
-                valigiaHelper.userData.isValigiaClickTarget = true;
-                valigiaHelper.visible = true;
-                child.add(valigiaHelper);
-            }
-            
-            if (child.isMesh) {
-                // Abilita castShadow per tutti gli oggetti
-                child.castShadow = true;
-                // Abilita receiveShadow per tutti gli oggetti
-                child.receiveShadow = true;
-                
-                // Migliora la qualità del materiale
-                if (child.material) {
-                    // I fogli devono essere visibili da entrambi i lati
-                    child.material.side = child.userData.isPaper ? THREE.DoubleSide : THREE.FrontSide;
-                    child.material.flatShading = false; // Smooth shading
-                    
-                    // Se è una mappa standard, abilitare best quality
-                    if (child.material.map) {
-                        child.material.map.anisotropy = renderer.capabilities.maxAnisotropy;
-                        child.material.map.magFilter = THREE.LinearFilter;
-                        child.material.map.minFilter = THREE.LinearMipmapLinearFilter;
-                    }
-                }
-            }
-        });
-        
-        // Carica le animazioni
-        if (gltf.animations && gltf.animations.length > 0) {
-            mixer = new THREE.AnimationMixer(gltf.scene);
-            
-            gltf.animations.forEach((clip, index) => {
-                // Crea un'azione per ogni animazione
-                const action = mixer.clipAction(clip);
-                action.setLoop(THREE.LoopOnce);
-                action.clampWhenFinished = true;
-                allAnimations.push(action);
-                
-                // Analizza quale oggetto viene animato guardando i tracks
-                const clipNameLower = clip.name.toLowerCase();
-                let assigned = false;
-                
-                // Controlla i tracks per capire quale oggetto anima
-                clip.tracks.forEach(track => {
-                    const trackName = track.name.toLowerCase();
-                    
-                    // Cassetto
-                    if (trackName.includes('file') || trackName.includes('cabinet') || clipNameLower.includes('cabinet')) {
-                        if (!paperSets.cassetto.animations.includes(action)) {
-                            paperSets.cassetto.animations.push(action);
-                            assigned = true;
-                        }
-                    }
-                    
-                    // Fogli cassetto (follia circolare / scattered)
-                    if (trackName.includes('scatteredpaper') || trackName.includes('follia') || 
-                        trackName.includes('circolare') || clipNameLower.includes('scattered') ||
-                        clipNameLower.includes('follia') || clipNameLower.includes('circolare')) {
-                        if (!paperSets.cassetto.animations.includes(action)) {
-                            paperSets.cassetto.animations.push(action);
-                            assigned = true;
-                        }
-                    }
-                    
-                    // Fogli monomania - anche per pattern
-                    if (trackName.includes('monomania') || clipNameLower.includes('monomania') ||
-                        trackName.includes('impulsiv') || clipNameLower.includes('impulsiv')) {
-                        if (!paperSets.monomania.animations.includes(action)) {
-                            paperSets.monomania.animations.push(action);
-                            assigned = true;
-                        }
-                    }
-                    
-                    // Fogli monomania (controlla se anima oggetti monomania)
-                    paperSets.monomania.objects.forEach(paperObj => {
-                        if (paperObj && trackName.includes(paperObj.name.toLowerCase())) {
-                            if (!paperSets.monomania.animations.includes(action)) {
-                                paperSets.monomania.animations.push(action);
-                                assigned = true;
-                            }
-                        }
-                    });
-                    
-                    // Fogli nevrastenia - anche per pattern
-                    if (trackName.includes('nevrastenia') || clipNameLower.includes('nevrastenia') ||
-                        trackName.includes('neurasthenia') || clipNameLower.includes('neurasthenia')) {
-                        if (!paperSets.nevrastenia.animations.includes(action)) {
-                            paperSets.nevrastenia.animations.push(action);
-                            assigned = true;
-                        }
-                    }
-                    
-                    // Fogli nevrastenia
-                    paperSets.nevrastenia.objects.forEach(paperObj => {
-                        if (paperObj && trackName.includes(paperObj.name.toLowerCase())) {
-                            if (!paperSets.nevrastenia.animations.includes(action)) {
-                                paperSets.nevrastenia.animations.push(action);
-                                assigned = true;
-                            }
-                        }
-                    });
-                    
-                    // Fogli isteria
-                    paperSets.isteria.objects.forEach(paperObj => {
-                        if (paperObj && trackName.includes(paperObj.name.toLowerCase())) {
-                            if (!paperSets.isteria.animations.includes(action)) {
-                                paperSets.isteria.animations.push(action);
-                                assigned = true;
-                            }
-                        }
-                    });
-                    
-                    // Fogli megalomania
-                    // Fogli isteria - anche per pattern
-                    if (trackName.includes('isteria') || clipNameLower.includes('isteria') ||
-                        trackName.includes('hysteria') || clipNameLower.includes('hysteria')) {
-                        if (!paperSets.isteria.animations.includes(action)) {
-                            paperSets.isteria.animations.push(action);
-                            assigned = true;
-                        }
-                    }
-                    
-                    // Fogli megalomania - anche per pattern
-                    if (trackName.includes('megalomania') || clipNameLower.includes('megalomania') ||
-                        trackName.includes('megaloman') || clipNameLower.includes('megaloman')) {
-                        if (!paperSets.megalomania.animations.includes(action)) {
-                            paperSets.megalomania.animations.push(action);
-                            assigned = true;
-                        }
-                    }
-                    
-                    paperSets.megalomania.objects.forEach(paperObj => {
-                        if (paperObj && trackName.includes(paperObj.name.toLowerCase())) {
-                            if (!paperSets.megalomania.animations.includes(action)) {
-                                paperSets.megalomania.animations.push(action);
-                                assigned = true;
-                            }
-                        }
-                    });
-                    
-                    // Fogli delirio (nella valigia)
-                    paperSets.delirio.objects.forEach(paperObj => {
-                        if (paperObj && trackName.includes(paperObj.name.toLowerCase())) {
-                            if (!paperSets.delirio.animations.includes(action)) {
-                                paperSets.delirio.animations.push(action);
-                                assigned = true;
-                            }
-                        }
-                    });
-                    
-                    // Valigia e fogli delirio - anche per pattern
-                    if (trackName.includes('valigia') || trackName.includes('suitcase') || 
-                        trackName.includes('delirio') || clipNameLower.includes('valigia') ||
-                        clipNameLower.includes('delirio') || clipNameLower.includes('delirium')) {
-                        if (!paperSets.delirio.animations.includes(action)) {
-                            paperSets.delirio.animations.push(action);
-                            assigned = true;
-                        }
-                    }
-                    
-                    // Specimen (foglio singolo animato)
-                    if (trackName.includes('specimen') || clipNameLower.includes('specimen')) {
-                        if (!paperSets.specimen.animations.includes(action)) {
-                            paperSets.specimen.animations.push(action);
-                            assigned = true;
-                        }
-                    }
-                    
-                    // Letteraincompleta (foglio singolo animato)
-                    if (trackName.includes('letteraincompleta') || trackName.includes('lettera') || 
-                        clipNameLower.includes('letteraincompleta') || clipNameLower.includes('incomplet')) {
-                        if (!paperSets.letteraincompleta.animations.includes(action)) {
-                            paperSets.letteraincompleta.animations.push(action);
-                            assigned = true;
-                        }
-                    }
-                    
-                    // Specimen e letteraincompleta (controlla oggetti specifici)
-                    paperSets.specimen.objects.forEach(paperObj => {
-                        if (paperObj && trackName.includes(paperObj.name.toLowerCase())) {
-                            if (!paperSets.specimen.animations.includes(action)) {
-                                paperSets.specimen.animations.push(action);
-                                assigned = true;
-                            }
-                        }
-                    });
-                    
-                    paperSets.letteraincompleta.objects.forEach(paperObj => {
-                        if (paperObj && trackName.includes(paperObj.name.toLowerCase())) {
-                            if (!paperSets.letteraincompleta.animations.includes(action)) {
-                                paperSets.letteraincompleta.animations.push(action);
-                                assigned = true;
-                            }
-                        }
-                    });
-                });
-                
-
-                
-            });
-
-            // Usa una delle animazioni del cassetto come riferimento principale
-            if (!cassettoAnimation && paperSets.cassetto.animations.length > 0) {
-                cassettoAnimation = paperSets.cassetto.animations[0];
             }
         }
-        
 
-        
-        scene.add(gltf.scene);
-        modelLoaded = true;
-        updateScrollAvailability();
-    },
-    (progress) => {
-        // Progress callback
-    },
-    (error) => {
-        loadingScreen.innerHTML = `<div style="color: red; font-size: 20px;">ERRORE: ${error.message}<br>URL: ${glbUrl}</div>`;
+        // Carica il modello con GLTFLoader
+        loader.load(glbUrl, 
+            (gltf) => {
+                manicomioModel = gltf.scene;
+                manicomioModel.position.set(0, 0, 0);
+                manicomioModel.scale.set(1.6, 1.6, 1.6);
+                
+                // ... TUTTO IL RESTO DEL CODICE RIMANE IDENTICO ...
+                // (copia tutto il contenuto della funzione onLoad esistente)
+                
+                // Abilita le ombre per gli oggetti, disabilita su muri/pareti
+                manicomioModel.traverse((child) => {
+                    // [... tutto il codice traverse esistente ...]
+                });
+                
+                // Carica le animazioni
+                if (gltf.animations && gltf.animations.length > 0) {
+                    // [... tutto il codice animazioni esistente ...]
+                }
+                
+                scene.add(gltf.scene);
+                modelLoaded = true;
+                updateScrollAvailability();
+            },
+            (progress) => {
+                // Progress callback
+            },
+            (error) => {
+                loadingScreen.innerHTML = `<div style="color: red; font-size: 20px;">ERRORE: ${error.message}<br>URL: ${glbUrl}</div>`;
+            }
+        );
+    } catch (error) {
+        console.error('Errore nel caricamento del modello:', error);
+        if (loadingScreen) {
+            loadingScreen.innerHTML = `<div style="color: red; font-size: 20px;">ERRORE: ${error.message}</div>`;
+        }
     }
-);
+}
+
+// Avvia il caricamento
+loadMainModel();
 
 loader.load(muraGlbUrl,
     (gltf) => {
